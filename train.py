@@ -4,6 +4,8 @@
 # This source code is licensed under the license found in the
 # LICENSE file in the root directory of this source tree.
 
+# note: peter wu by 2024-03-08
+
 """
 A minimal training script for DiT using PyTorch DDP.
 """
