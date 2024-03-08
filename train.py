@@ -11,7 +11,6 @@ A minimal training script for DiT using PyTorch DDP.
 """
 import argparse
 import os
-from copy import deepcopy
 from functools import partial
 
 import torch
@@ -29,7 +28,7 @@ from tqdm import tqdm
 
 from open_sora.diffusion import create_diffusion
 from open_sora.modeling import DiT_models
-from open_sora.modeling.dit import SUPPORTED_SEQ_PARALLEL_MODES
+from open_sora.modeling.dit import SUPPORTED_MODEL_ARCH, SUPPORTED_SEQ_PARALLEL_MODES
 from open_sora.utils.data import (
     create_video_compressor,
     load_datasets,
@@ -116,12 +115,14 @@ def main(args):
         "seq_parallel_group": plugin.sp_group,
         "seq_parallel_mode": args.sp_mode,
         "seq_parallel_overlap": args.sp_overlap,
+        "model_arch": args.model_arch,
     }
 
     # Step 4: Create DiT and EMA
     model = DiT_models[args.model](**model_kwargs).to(get_current_device())
     patch_size = model.patch_size
-    ema = deepcopy(model)
+    ema = DiT_models[args.model](**model_kwargs).to(get_current_device())
+    update_ema(ema, model, decay=0)
     requires_grad(ema, False)
 
     model.train()  # important! This enables embedding dropout for classifier-free guidance
@@ -145,7 +146,10 @@ def main(args):
         dataset,
         batch_size=args.batch_size,
         collate_fn=partial(
-            make_batch, video_dir=args.video_dir, pad_to_multiple=args.sp_size
+            make_batch,
+            video_dir=args.video_dir,
+            pad_to_multiple=args.sp_size,
+            use_pooled_text=args.model_arch == "adaln",
         ),
         shuffle=True,
         drop_last=True,
@@ -181,7 +185,11 @@ def main(args):
             total_loss = torch.tensor(0.0, device=get_current_device())
             for step, batch in enumerate(dataloader):
                 batch = preprocess_batch(
-                    batch, patch_size, video_compressor, pad_to_multiple=args.sp_size
+                    batch,
+                    patch_size,
+                    video_compressor,
+                    pad_to_multiple=args.sp_size,
+                    model_arch=args.model_arch,
                 )
                 video_inputs = batch.pop("video_latent_states")
                 mask = batch.pop("video_padding_mask")
@@ -244,6 +252,9 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "-m", "--model", type=str, choices=list(DiT_models.keys()), default="DiT-S/8"
+    )
+    parser.add_argument(
+        "-x", "--model_arch", choices=SUPPORTED_MODEL_ARCH, default="cross-attn"
     )
     parser.add_argument("-d", "--dataset", nargs="+", default=[])
     parser.add_argument("-v", "--video_dir", type=str, required=True)
