@@ -27,7 +27,10 @@ from .attn import (
     SeqParallelCrossAttention,
 )
 
+# 支持的Parallel并行的modes
 SUPPORTED_SEQ_PARALLEL_MODES = ["ulysses", "fastseq"]
+
+# 支持的模型融入的方式
 SUPPORTED_MODEL_ARCH = ["adaln", "cross-attn", "token-concat"]
 
 
@@ -643,6 +646,7 @@ def DiT_S_8(**kwargs):
     return DiT(depth=12, hidden_size=384, patch_size=8, num_heads=6, **kwargs)
 
 
+# DiT_models的相关类型
 DiT_models = {
     "DiT-XL/2": DiT_XL_2,
     "DiT-XL/4": DiT_XL_4,

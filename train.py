@@ -41,7 +41,7 @@ from open_sora.utils.plugin import ZeroSeqParallelPlugin
 #                             Training Helper Functions                         #
 #################################################################################
 
-
+# 配置torch的后端，主要是涉及到数学计算
 def configure_backends():
     # the first flag below was False when we tested this script but True makes A100 training a lot faster:
     torch.backends.cuda.matmul.allow_tf32 = True
@@ -94,9 +94,12 @@ def main(args):
     Trains a new DiT model.
     """
     # Step 1: init distributed environment
+    # colossal ai启动torch分布式训练环境的函数
     launch_from_torch({})
+    # colossal ai用于分布式环境的一些信息的存储
     coordinator = DistCoordinator()
     logger = get_dist_logger()
+    # 配置torch后端的cuda等计算精度
     configure_backends()
 
     # Step 2: set up acceleration plugins
@@ -247,8 +250,10 @@ def main(args):
     )
 
 
+# 训练的入口，加载命令行参数，调用训练的主函数
 if __name__ == "__main__":
     # Default args here will train DiT-XL/2 with the hyperparameters we used in our paper (except training iters).
+    # 加载相关的命令行参数
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "-m", "--model", type=str, choices=list(DiT_models.keys()), default="DiT-S/8"

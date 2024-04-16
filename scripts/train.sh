@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
-
+ 
 # get args
+# 设定$1第一个参数，GPUs的数量，如果没有设置，默认是8
 GPUS=${1:-8}
 
 # get root dir
